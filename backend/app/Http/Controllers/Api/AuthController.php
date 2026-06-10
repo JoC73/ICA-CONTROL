@@ -16,9 +16,10 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:160', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
+            'role' => ['nullable', 'in:admin,user'],
         ]);
 
-        $user = User::create($data + ['role' => User::ROLE_USER, 'status' => 'active']);
+        $user = User::create($data + ['role' => $data['role'] ?? User::ROLE_USER, 'status' => 'active']);
 
         return $this->tokenResponse($user, 'Cuenta creada correctamente');
     }
