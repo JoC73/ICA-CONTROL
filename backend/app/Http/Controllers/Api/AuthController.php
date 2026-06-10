@@ -12,16 +12,36 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        abort_if(User::exists(), 403, 'El registro publico esta cerrado. Un administrador debe crear nuevos usuarios.');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:160', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['nullable', 'in:admin,user'],
         ]);
 
-        $user = User::create($data + ['role' => $data['role'] ?? User::ROLE_USER, 'status' => 'active']);
+        $user = User::create($data + ['role' => User::ROLE_ADMIN, 'status' => 'active']);
 
-        return $this->tokenResponse($user, 'Cuenta creada correctamente');
+        return $this->tokenResponse($user, 'Administrador inicial creado correctamente');
+    }
+
+    public function createUser(Request $request)
+    {
+        abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede crear usuarios.');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:160', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'role' => ['required', 'in:admin,user'],
+        ]);
+
+        $user = User::create($data + ['status' => 'active']);
+
+        return response()->json([
+            'message' => 'Usuario creado correctamente',
+            'user' => $user,
+        ], 201);
     }
 
     public function login(Request $request)
