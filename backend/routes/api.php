@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TransactionController;
@@ -17,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::get('/dashboard', DashboardController::class);
     Route::get('/catalogs', CatalogController::class);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
     Route::apiResource('/transactions', TransactionController::class)->except(['show']);
     Route::get('/reports/{period}', [ReportController::class, 'show'])
         ->whereIn('period', ['daily', 'weekly', 'monthly', 'annual']);
