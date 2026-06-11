@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/catalogs', CatalogController::class);
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::get('/transactions-history', [TransactionController::class, 'history']);
     Route::apiResource('/transactions', TransactionController::class)->except(['show']);
     Route::get('/reports/{period}', [ReportController::class, 'show'])
         ->whereIn('period', ['daily', 'weekly', 'monthly', 'annual']);

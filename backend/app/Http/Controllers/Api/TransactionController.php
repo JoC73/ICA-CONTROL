@@ -64,13 +64,21 @@ class TransactionController extends Controller
     public function update(Request $request, Transaction $transaction)
     {
         $this->authorizeOwner($request, $transaction);
-        $transaction->update($this->validated($request));
+        $before = $transaction->only(['type', 'amount', 'description', 'category_id', 'account_id', 'payment_method', 'date', 'provider', 'notes']);
+        $data = $this->validated($request);
+        unset($data['change_reason']);
+        $transaction->update($data);
 
         AuditLog::create([
             'user_id' => $request->user()->id,
             'action' => 'transaction.updated',
             'auditable_type' => Transaction::class,
             'auditable_id' => $transaction->id,
+            'metadata' => [
+                'reason' => $request->input('change_reason'),
+                'before' => $before,
+                'after' => $transaction->only(['type', 'amount', 'description', 'category_id', 'account_id', 'payment_method', 'date', 'provider', 'notes']),
+            ],
             'ip_address' => $request->ip(),
         ]);
 
@@ -80,9 +88,40 @@ class TransactionController extends Controller
     public function destroy(Request $request, Transaction $transaction)
     {
         abort_if($request->user()->role === 'user', 403, 'No tienes permiso para eliminar movimientos.');
+        $payload = $request->validate([
+            'delete_reason' => ['required', 'string', 'min:6', 'max:500'],
+        ]);
+
+        $transaction->forceFill([
+            'delete_reason' => $payload['delete_reason'],
+            'deleted_by' => $request->user()->id,
+        ])->save();
+
         $transaction->delete();
 
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'transaction.deleted',
+            'auditable_type' => Transaction::class,
+            'auditable_id' => $transaction->id,
+            'metadata' => [
+                'reason' => $payload['delete_reason'],
+                'snapshot' => $transaction->only(['type', 'amount', 'description', 'category_id', 'account_id', 'payment_method', 'date', 'provider', 'notes']),
+            ],
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['message' => 'Movimiento eliminado']);
+    }
+
+    public function history(Request $request)
+    {
+        abort_if($request->user()->role === 'user', 403, 'No tienes permiso para ver el historial completo.');
+
+        return AuditLog::with('user:id,name,email,role')
+            ->where('auditable_type', Transaction::class)
+            ->latest()
+            ->paginate(50);
     }
 
     private function validated(Request $request): array
@@ -98,6 +137,7 @@ class TransactionController extends Controller
             'receipt_path' => ['nullable', 'string', 'max:255'],
             'provider' => ['nullable', 'string', 'max:160'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'change_reason' => ['nullable', 'string', 'max:500'],
         ]);
     }
 

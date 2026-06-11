@@ -14,4 +14,9 @@ class AuditLog extends Model
             'metadata' => 'array',
         ];
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
