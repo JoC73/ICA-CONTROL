@@ -54,6 +54,18 @@ class AuthController extends Controller
         ], 201);
     }
 
+    public function users(Request $request)
+    {
+        abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede listar usuarios.');
+
+        return response()->json([
+            'users' => User::query()
+                ->select('id', 'name', 'email', 'role', 'status', 'created_at')
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
+
     public function login(Request $request)
     {
         $data = $request->validate([

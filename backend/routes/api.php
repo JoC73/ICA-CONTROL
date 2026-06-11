@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
@@ -16,7 +17,9 @@ Route::get('/setup-status', [AuthController::class, 'setupStatus'])->middleware(
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', fn (Request $request) => $request->user());
+    Route::get('/users', [AuthController::class, 'users']);
     Route::post('/users', [AuthController::class, 'createUser']);
+    Route::post('/backups/monthly', [BackupController::class, 'monthly']);
     Route::get('/dashboard', DashboardController::class);
     Route::get('/catalogs', CatalogController::class);
     Route::post('/categories', [CategoryController::class, 'store']);

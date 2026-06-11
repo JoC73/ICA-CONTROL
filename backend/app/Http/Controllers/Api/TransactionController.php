@@ -54,7 +54,10 @@ class TransactionController extends Controller
             'action' => 'transaction.created',
             'auditable_type' => Transaction::class,
             'auditable_id' => $transaction->id,
-            'metadata' => ['ticket' => $ticket->code],
+            'metadata' => [
+                'ticket' => $ticket->code,
+                'snapshot' => $transaction->only(['type', 'amount', 'description', 'category_id', 'account_id', 'payment_method', 'date', 'provider', 'notes']),
+            ],
             'ip_address' => $request->ip(),
         ]);
 
