@@ -10,6 +10,16 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function setupStatus()
+    {
+        return response()->json([
+            'registration_open' => ! User::exists(),
+            'message' => User::exists()
+                ? 'El registro publico esta cerrado. Un administrador debe crear nuevos usuarios.'
+                : 'El sistema aun no tiene administrador inicial.',
+        ]);
+    }
+
     public function register(Request $request)
     {
         abort_if(User::exists(), 403, 'El registro publico esta cerrado. Un administrador debe crear nuevos usuarios.');

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:8,1');
+Route::get('/setup-status', [AuthController::class, 'setupStatus'])->middleware('throttle:30,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

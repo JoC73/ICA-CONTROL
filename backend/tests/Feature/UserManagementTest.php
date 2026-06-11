@@ -37,6 +37,14 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_setup_status_reports_registration_open_when_no_users_exist(): void
+    {
+        $response = $this->getJson('/api/setup-status');
+
+        $response->assertOk()
+            ->assertJsonPath('registration_open', true);
+    }
+
     public function test_public_registration_is_closed_after_a_user_exists(): void
     {
         User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -48,6 +56,16 @@ class UserManagementTest extends TestCase
         ]);
 
         $response->assertForbidden();
+    }
+
+    public function test_setup_status_reports_registration_closed_after_a_user_exists(): void
+    {
+        User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->getJson('/api/setup-status');
+
+        $response->assertOk()
+            ->assertJsonPath('registration_open', false);
     }
 
     public function test_regular_user_cannot_create_users_or_assign_roles(): void
