@@ -56,6 +56,7 @@ class BackupController extends Controller
                 'audit_logs' => $payload['audit_logs']->count(),
                 'users' => $payload['users']->count(),
             ],
+            'backup' => $payload,
         ]);
     }
 }
