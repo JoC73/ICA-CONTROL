@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -63,6 +64,61 @@ class AuthController extends Controller
                 ->select('id', 'name', 'email', 'role', 'status', 'created_at')
                 ->orderBy('name')
                 ->get(),
+        ]);
+    }
+
+    public function updateUser(Request $request, User $user)
+    {
+        abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede editar usuarios.');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:160', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['required', 'in:admin,user'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        if ($request->user()->is($user)) {
+            abort_if($data['status'] !== 'active', 422, 'No puedes desactivarte a ti mismo.');
+            $data['role'] = $user->role;
+        }
+
+        if (empty($data['password'])) {
+            unset($data['password']);
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Usuario actualizado correctamente',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    public function deactivateUser(Request $request, User $user)
+    {
+        abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede desactivar usuarios.');
+        abort_if($request->user()->is($user), 422, 'No puedes desactivarte a ti mismo.');
+
+        $user->update(['status' => 'inactive']);
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Usuario desactivado correctamente',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    public function activateUser(Request $request, User $user)
+    {
+        abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede activar usuarios.');
+
+        $user->update(['status' => 'active']);
+
+        return response()->json([
+            'message' => 'Usuario activado correctamente',
+            'user' => $user->fresh(),
         ]);
     }
 

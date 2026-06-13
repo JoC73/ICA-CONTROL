@@ -19,6 +19,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', fn (Request $request) => $request->user());
     Route::get('/users', [AuthController::class, 'users']);
     Route::post('/users', [AuthController::class, 'createUser']);
+    Route::put('/users/{user}', [AuthController::class, 'updateUser']);
+    Route::patch('/users/{user}/deactivate', [AuthController::class, 'deactivateUser']);
+    Route::patch('/users/{user}/activate', [AuthController::class, 'activateUser']);
     Route::post('/backups/monthly', [BackupController::class, 'monthly']);
     Route::get('/dashboard', DashboardController::class);
     Route::get('/catalogs', CatalogController::class);

@@ -84,6 +84,30 @@ class UserManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'nuevo-admin@example.com']);
     }
 
+    public function test_regular_user_cannot_update_or_deactivate_users(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_USER]);
+        $target = User::factory()->create(['role' => User::ROLE_USER, 'status' => 'active']);
+        Sanctum::actingAs($user);
+
+        $updateResponse = $this->putJson("/api/users/{$target->id}", [
+            'name' => 'Nombre Editado',
+            'email' => $target->email,
+            'role' => User::ROLE_ADMIN,
+            'status' => 'active',
+        ]);
+
+        $deactivateResponse = $this->patchJson("/api/users/{$target->id}/deactivate");
+
+        $updateResponse->assertForbidden();
+        $deactivateResponse->assertForbidden();
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'role' => User::ROLE_USER,
+            'status' => 'active',
+        ]);
+    }
+
     public function test_admin_can_create_users_and_assign_allowed_roles(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -120,5 +144,72 @@ class UserManagementTest extends TestCase
 
         $response->assertUnprocessable();
         $this->assertDatabaseMissing('users', ['email' => 'rol-no-valido@example.com']);
+    }
+
+    public function test_admin_can_update_user_profile_and_role(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $user = User::factory()->create(['role' => User::ROLE_USER, 'status' => 'active']);
+        Sanctum::actingAs($admin);
+
+        $response = $this->putJson("/api/users/{$user->id}", [
+            'name' => 'Operador Editado',
+            'email' => 'operador-editado@example.com',
+            'role' => User::ROLE_ADMIN,
+            'status' => 'active',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('user.name', 'Operador Editado')
+            ->assertJsonPath('user.email', 'operador-editado@example.com')
+            ->assertJsonPath('user.role', User::ROLE_ADMIN);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'operador-editado@example.com',
+            'role' => User::ROLE_ADMIN,
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_admin_can_deactivate_and_reactivate_users_without_deleting_them(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $user = User::factory()->create(['role' => User::ROLE_USER, 'status' => 'active']);
+        $user->createToken('mobile');
+        Sanctum::actingAs($admin);
+
+        $deactivateResponse = $this->patchJson("/api/users/{$user->id}/deactivate");
+
+        $deactivateResponse->assertOk()
+            ->assertJsonPath('user.status', 'inactive');
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'status' => 'inactive',
+        ]);
+        $this->assertSame(0, $user->tokens()->count());
+
+        $activateResponse = $this->patchJson("/api/users/{$user->id}/activate");
+
+        $activateResponse->assertOk()
+            ->assertJsonPath('user.status', 'active');
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_admin_cannot_deactivate_self(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'status' => 'active']);
+        Sanctum::actingAs($admin);
+
+        $response = $this->patchJson("/api/users/{$admin->id}/deactivate");
+
+        $response->assertUnprocessable();
+        $this->assertDatabaseHas('users', [
+            'id' => $admin->id,
+            'status' => 'active',
+        ]);
     }
 }
