@@ -172,6 +172,29 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_update_user_without_sending_status(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $user = User::factory()->create(['role' => User::ROLE_USER, 'status' => 'active']);
+        Sanctum::actingAs($admin);
+
+        $response = $this->putJson("/api/users/{$user->id}", [
+            'name' => 'Usuario Sin Estado',
+            'email' => $user->email,
+            'role' => User::ROLE_USER,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('user.name', 'Usuario Sin Estado')
+            ->assertJsonPath('user.status', 'active');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Usuario Sin Estado',
+            'status' => 'active',
+        ]);
+    }
+
     public function test_admin_can_deactivate_and_reactivate_users_without_deleting_them(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

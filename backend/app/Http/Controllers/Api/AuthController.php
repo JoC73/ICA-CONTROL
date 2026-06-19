@@ -72,15 +72,15 @@ class AuthController extends Controller
         abort_unless($request->user()->canManageUsers(), 403, 'Solo un administrador puede editar usuarios.');
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:160', Rule::unique('users', 'email')->ignore($user->id)],
+            'name' => ['sometimes', 'required', 'string', 'max:120'],
+            'email' => ['sometimes', 'required', 'email', 'max:160', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', 'in:admin,user'],
-            'status' => ['required', 'in:active,inactive'],
+            'role' => ['sometimes', 'required', 'in:admin,user'],
+            'status' => ['sometimes', 'required', 'in:active,inactive'],
         ]);
 
         if ($request->user()->is($user)) {
-            abort_if($data['status'] !== 'active', 422, 'No puedes desactivarte a ti mismo.');
+            abort_if(($data['status'] ?? $user->status) !== 'active', 422, 'No puedes desactivarte a ti mismo.');
             $data['role'] = $user->role;
         }
 
