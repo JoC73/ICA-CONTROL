@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', DashboardController::class);
     Route::get('/catalogs', CatalogController::class);
     Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
     Route::get('/transactions-history', [TransactionController::class, 'history']);
     Route::apiResource('/transactions', TransactionController::class)->except(['show']);

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
-use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,12 +17,29 @@ class CategoryController extends Controller
                 'required',
                 'string',
                 'max:120',
-                Rule::unique('categories')->where(fn ($query) => $query->where('type', $request->input('type'))),
             ],
             'type' => ['required', Rule::in(['income', 'expense'])],
             'color' => ['nullable', 'string', 'max:16'],
             'icon' => ['nullable', 'string', 'max:40'],
         ]);
+
+        $existing = Category::where('name', $payload['name'])
+            ->where('type', $payload['type'])
+            ->first();
+
+        if ($existing && $existing->status === 'active') {
+            abort(422, 'Ya existe una categoria activa con ese nombre.');
+        }
+
+        if ($existing) {
+            $existing->update([
+                'color' => $payload['color'] ?? $existing->color,
+                'icon' => $payload['icon'] ?? $existing->icon,
+                'status' => 'active',
+            ]);
+
+            return response()->json(['category' => $existing->fresh()], 200);
+        }
 
         $category = Category::create([
             'name' => $payload['name'],
@@ -36,14 +52,31 @@ class CategoryController extends Controller
         return response()->json(['category' => $category], 201);
     }
 
+    public function update(Request $request, Category $category): JsonResponse
+    {
+        $payload = $request->validate([
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('categories')->where(fn ($query) => $query->where('type', $request->input('type', $category->type)))->ignore($category->id),
+            ],
+            'type' => ['sometimes', 'required', Rule::in(['income', 'expense'])],
+            'color' => ['nullable', 'string', 'max:16'],
+            'icon' => ['nullable', 'string', 'max:40'],
+            'status' => ['sometimes', 'required', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $category->update($payload);
+
+        return response()->json(['category' => $category->fresh()]);
+    }
+
     public function destroy(Category $category): JsonResponse
     {
-        $hasTransactions = Transaction::where('category_id', $category->id)->exists();
+        $category->update(['status' => 'inactive']);
 
-        abort_if($hasTransactions, 422, 'No se puede eliminar una categoria con movimientos registrados.');
-
-        $category->delete();
-
-        return response()->json(['message' => 'Categoria eliminada.']);
+        return response()->json(['message' => 'Categoria desactivada.']);
     }
 }
