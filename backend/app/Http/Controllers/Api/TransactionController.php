@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\FinancialCut;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
@@ -16,6 +17,11 @@ class TransactionController extends Controller
     {
         $query = Transaction::with(['user:id,name', 'category:id,name,color,icon,type', 'account:id,name,type'])
             ->latest('date');
+
+        if ($request->boolean('current_period', true)) {
+            $latestCutAt = FinancialCut::latestCutAt();
+            $query->when($latestCutAt, fn ($inner) => $inner->where('created_at', '>', $latestCutAt));
+        }
 
         if ($request->user()->role === 'user') {
             $query->where('user_id', $request->user()->id);
@@ -40,7 +46,10 @@ class TransactionController extends Controller
         $data = $this->validated($request);
         $transaction = Transaction::create($data + ['user_id' => $request->user()->id]);
 
-        $balance = Transaction::sum(DB::raw("case when type = 'income' then amount else amount * -1 end"));
+        $balanceQuery = Transaction::query();
+        $latestCutAt = FinancialCut::latestCutAt();
+        $balanceQuery->when($latestCutAt, fn ($query) => $query->where('created_at', '>', $latestCutAt));
+        $balance = $balanceQuery->sum(DB::raw("case when type = 'income' then amount else amount * -1 end"));
         $ticket = Ticket::create([
             'code' => 'TK-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
             'user_id' => $request->user()->id,

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\FinancialCutController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Http\Request;
@@ -23,6 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/users/{user}/deactivate', [AuthController::class, 'deactivateUser']);
     Route::patch('/users/{user}/activate', [AuthController::class, 'activateUser']);
     Route::post('/backups/monthly', [BackupController::class, 'monthly']);
+    Route::get('/financial-cuts/current', [FinancialCutController::class, 'current']);
+    Route::get('/financial-cuts', [FinancialCutController::class, 'index']);
+    Route::post('/financial-cuts', [FinancialCutController::class, 'store']);
     Route::get('/dashboard', DashboardController::class);
     Route::get('/catalogs', CatalogController::class);
     Route::post('/categories', [CategoryController::class, 'store']);
@@ -31,5 +35,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transactions-history', [TransactionController::class, 'history']);
     Route::apiResource('/transactions', TransactionController::class)->except(['show']);
     Route::get('/reports/{period}', [ReportController::class, 'show'])
-        ->whereIn('period', ['daily', 'weekly', 'monthly', 'annual']);
+        ->whereIn('period', ['daily', 'weekly', 'monthly', 'annual', 'custom']);
 });

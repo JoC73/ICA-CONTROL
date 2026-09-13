@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\FinancialCut;
 use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ class DashboardController extends Controller
     {
         $now = CarbonImmutable::now();
         $base = Transaction::query();
+        $latestCutAt = FinancialCut::latestCutAt();
+        $base->when($latestCutAt, fn ($query) => $query->where('created_at', '>', $latestCutAt));
 
         if ($request->user()->role === 'user') {
             $base->where('user_id', $request->user()->id);
@@ -53,6 +56,7 @@ class DashboardController extends Controller
             'top_categories' => $topCategories,
             'low_balance_alert' => ($income - $expense) < 500,
             'categories_count' => Category::where('status', 'active')->count(),
+            'current_period_started_at' => $latestCutAt?->toDateTimeString(),
         ]);
     }
 }

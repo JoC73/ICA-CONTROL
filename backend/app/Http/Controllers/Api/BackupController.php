@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\AuditLog;
 use App\Models\Category;
+use App\Models\FinancialCut;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use App\Models\User;
@@ -32,6 +33,7 @@ class BackupController extends Controller
             'users' => User::select('id', 'name', 'email', 'role', 'status', 'created_at')->get(),
             'accounts' => Account::all(),
             'categories' => Category::all(),
+            'financial_cuts' => FinancialCut::with('creator:id,name,email,role')->latest('cut_at')->get(),
             'transactions' => Transaction::withTrashed()
                 ->with(['user:id,name,email,role', 'category:id,name,type,color,icon', 'account:id,name,type'])
                 ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
@@ -54,6 +56,7 @@ class BackupController extends Controller
             'records' => [
                 'transactions' => $payload['transactions']->count(),
                 'audit_logs' => $payload['audit_logs']->count(),
+                'financial_cuts' => $payload['financial_cuts']->count(),
                 'users' => $payload['users']->count(),
             ],
             'backup' => $payload,
